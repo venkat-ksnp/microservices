@@ -4,6 +4,9 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthController } from './auth/auth.controller';
 import { AuthService } from './auth/auth.service';
 import { User } from './auth/entities/user.entity';
+import { AuthToken } from './auth/entities/auth_tokens.entity';
+import { PasswordReset } from './auth/entities/password_resets.entity';
+import { LoginLog } from './auth/entities/login_logs.entity';
 import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
 import { AuthModule } from './auth/auth.module';
 import { IsUniqueConstraint } from './common/validators/is-unique.validator';
@@ -19,10 +22,9 @@ import { IsUniqueConstraint } from './common/validators/is-unique.validator';
       username: process.env.DB_USER,
       password: process.env.DB_PASS,
       database: process.env.DB_NAME,
-      entities: [User],
+      autoLoadEntities: true,
       synchronize: false,
     }),
-    TypeOrmModule.forFeature([User]),
     RabbitMQModule,
   ],
   controllers: [AuthController],

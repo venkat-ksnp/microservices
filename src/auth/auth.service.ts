@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ConflictException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,7 +16,6 @@ import { RegisterDto } from './dtos/register.dto';
 import { LoginDto } from './dtos/login.dto';
 import { RefreshTokenDto } from './dtos/refresh-token.dto';
 import { RequestPasswordResetDto,ResetPasswordDto } from './dtos/request-password-reset.dto';
-import { UnauthorizedException } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
@@ -25,65 +28,86 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    dto['password'] = await bcrypt.hash(dto.password, 10);
-    return this.userRepo.save(dto);
+      const existingUser = await this.userRepo.findOne({ where: { email: dto.email } });
+      if (existingUser) {
+        throw new ConflictException('Email already registered');
+      }
+      try {
+        const hashedPassword = await bcrypt.hash(dto.password, 10);
+        const user = { ...dto, password: hashedPassword };
+        return await this.userRepo.save(user);
+      } catch (error) {
+        throw new ConflictException(error);
+      }
   }
 
   async login(dto: LoginDto, ip: string, userAgent: string) {
     const user = await this.userRepo.findOne({ where: { email: dto.email } });
     if (!user || !(await bcrypt.compare(dto.password, user.password))) {
-       throw new UnauthorizedException('Invalid credentials');
+       throw new ConflictException('Invalid credentials');
     }
-
-    const payload = { id: user.id, email: user.email, role: user.role };
-    const accessToken = this.jwtService.sign(payload);
-    const refreshToken = crypto.randomBytes(32).toString('hex');
-
-    await this.authTokenRepo.save({
-      user,
-      token: refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    });
-
-    await this.loginLogRepo.save({ user, ipAddress: ip, userAgent });
-
-    return { accessToken, refreshToken };
+    try {
+      const payload = { id: user.id, email: user.email, role: user.role };
+      const accessToken = this.jwtService.sign(payload);
+      const refreshToken = crypto.randomBytes(32).toString('hex');
+      await this.authTokenRepo.save({user,token: refreshToken,expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)});
+      await this.loginLogRepo.save({ user, ipAddress: ip, userAgent });
+      return { accessToken, refreshToken };
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
   }
 
   async refreshToken(dto: RefreshTokenDto) {
-    const tokenRecord = await this.authTokenRepo.findOne({
-      where: { token: dto.refreshToken, isRevoked: false },
-      relations: ['user'],
-    });
-    if (!tokenRecord || tokenRecord.expiresAt < new Date()) throw new UnauthorizedException('Invalid token');
-
-    const payload = { id: tokenRecord.user.id, email: tokenRecord.user.email, role: tokenRecord.user.role };
-    return { accessToken: this.jwtService.sign(payload) };
+    try {
+      const tokenRecord = await this.authTokenRepo.findOne({
+        where: { token: dto.refreshToken, isRevoked: false },
+        relations: ['user'],
+      });
+      if (!tokenRecord || tokenRecord.expiresAt < new Date()) throw new ConflictException('Invalid token');
+      const payload = { id: tokenRecord.user.id, email: tokenRecord.user.email, role: tokenRecord.user.role };
+      return { accessToken: this.jwtService.sign(payload) };
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
   }
 
   async requestPasswordReset(dto: RequestPasswordResetDto) {
-    const user = await this.userRepo.findOne({ where: { email: dto.email } });
-    if (!user) throw new UnauthorizedException('User not found');
+    try {
+      const user = await this.userRepo.findOne({ where: { email: dto.email } });
+      if (!user) throw new ConflictException('User not found');
 
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 15);
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 1000 * 60 * 15);
 
-    await this.passwordResetRepo.save({ user, token, expiresAt });
-    return { message: 'Reset token generated', token };
+      await this.passwordResetRepo.save({ user, token, expiresAt });
+      return { message: 'Reset token generated', token };
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-    const reset = await this.passwordResetRepo.findOne({ where: { token: dto.token }, relations: ['user'] });
-    if (!reset || reset.expiresAt < new Date()) throw new Error('Invalid or expired token');
-
-    reset.user.password = await bcrypt.hash(dto.newPassword, 10);
-    await this.userRepo.save(reset.user);
-    await this.passwordResetRepo.delete({ id: reset.id });
-
-    return { message: 'Password updated successfully' };
+    try {
+      const reset = await this.passwordResetRepo.findOne({ where: { token: dto.token }, relations: ['user'] });
+      if (!reset || reset.expiresAt < new Date()){
+        throw new BadRequestException('Invalid or expired token');
+      }else{
+        reset.user.password = await bcrypt.hash(dto.newPassword, 10);
+        await this.userRepo.save(reset.user);
+        await this.passwordResetRepo.delete({ id: reset.id });
+        return { message: 'Password reset successfully' };
+      }
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
   }
 
   async getUserLoginLogs(userId: number) {
-    return this.loginLogRepo.find({ where: { user: { id: userId } }, order: { loggedAt: 'DESC' } });
+    try {
+      return this.loginLogRepo.find({ where: { user: { id: userId } }, order: { loggedAt: 'DESC' } });
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
   }
 }
