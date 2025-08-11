@@ -12,6 +12,9 @@ export class User extends BaseEntity {
   @Column()
   password: string;
 
+  @Column({ type: 'varchar', nullable: true, default: null })
+  profileImage: string | null;
+
   @Column({ default: 'student' })
   role: string;
   declare id: any;

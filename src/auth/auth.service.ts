@@ -41,6 +41,19 @@ export class AuthService {
       }
   }
 
+  async updateProfile(id:any,dto:any) {
+      try {
+        const user = await this.userRepo.findOne({ where: { id } });
+        if (!user) {
+          throw new ConflictException(`User with ID ${id} not found`);
+        }
+        Object.assign(user, dto);
+        return this.userRepo.save(user);
+      } catch (error) {
+        throw new ConflictException(error);
+      }
+  }
+
   async login(dto: LoginDto, ip: string, userAgent: string) {
     const user = await this.userRepo.findOne({ where: { email: dto.email } });
     if (!user || !(await bcrypt.compare(dto.password, user.password))) {
