@@ -1,18 +1,57 @@
 import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    ClientsModule.register([
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    ClientsModule.registerAsync([
       {
-        name: 'AUTH_SERVICE',
-        transport: Transport.RMQ,
-        options: {
-          urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672'],
-          queue: 'auth_queue',
-          queueOptions: { durable: false },
+        name: 'USER_SERVICE',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => {
+          const url = configService.get<string>('USER_SERVICE_URL');
+          const queue = configService.get<string>('USER_SERVICE_QUE');
+          if (!url || !queue) {
+            throw new Error(
+              'Missing USER_SERVICE_URL or USER_QUEUE in environment variables',
+            );
+          }
+          return {
+            transport: Transport.RMQ,
+            options: {
+              urls: [url],
+              queue,
+              queueOptions: { durable: true },
+            },
+          };
         },
       },
+      {
+        name: 'AUTH_SERVICE',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => {
+          const url = configService.get<string>('AUTH_SERVICE_URL');
+          const queue = configService.get<string>('AUTH_SERVICE_QUE');
+          if (!url || !queue) {
+            throw new Error(
+              'Missing USER_SERVICE_URL or USER_QUEUE in environment variables',
+            );
+          }
+          return {
+            transport: Transport.RMQ,
+            options: {
+              urls: [url],
+              queue,
+              queueOptions: { durable: true },
+            },
+          };
+        },
+      }
     ]),
   ],
   exports: [ClientsModule],

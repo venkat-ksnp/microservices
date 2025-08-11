@@ -1,14 +1,10 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-import { AuthController } from './auth/auth.controller';
-import { AuthService } from './auth/auth.service';
-import { User } from './auth/entities/user.entity';
-import { AuthToken } from './auth/entities/auth_tokens.entity';
-import { PasswordReset } from './auth/entities/password_resets.entity';
-import { LoginLog } from './auth/entities/login_logs.entity';
+import { UserController } from './user/user.controller';
+import { AuthService } from './user/user.service';
 import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
-import { AuthModule } from './auth/auth.module';
+import { AuthModule } from './user/user.module';
 import { IsUniqueConstraint } from './common/validators/is-unique.validator';
 
 @Module({
@@ -27,7 +23,7 @@ import { IsUniqueConstraint } from './common/validators/is-unique.validator';
     }),
     RabbitMQModule,
   ],
-  controllers: [AuthController],
+  controllers: [UserController],
   providers: [AuthService,IsUniqueConstraint],
 })
 export class AppModule {}
