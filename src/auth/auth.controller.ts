@@ -57,9 +57,8 @@ export class AuthController {
     return { secret: 'This is for admins only' };
   }
 
-  @MessagePattern({ cmd: 'update-user-profile' })
-  async updateUserProfile(@Body() { id, data }: { id:any; data:any }) {
-    console.log('📤 RabbitMQ: Updating profile for', id, data);
+  @MessagePattern('update-user-profile')
+  async updateUserProfile(@Body() { id, data }: { id: string; data: any }) {
     return this.authService.updateProfile(id, data);
   }
 }

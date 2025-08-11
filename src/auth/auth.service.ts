@@ -49,8 +49,8 @@ export class AuthService {
         }
         Object.assign(user, dto);
         return this.userRepo.save(user);
-      } catch (error) {
-        throw new ConflictException(error);
+      } catch (e) {
+        return { message: e.message };
       }
   }
 

@@ -9,9 +9,10 @@ import { AuthToken } from './entities/auth_tokens.entity';
 import { PasswordReset } from './entities/password_resets.entity';
 import { LoginLog } from './entities/login_logs.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
-
+import { RabbitMQModule } from './../rabbitmq/rabbitmq.module';
 @Module({
   imports: [
+    RabbitMQModule,
     TypeOrmModule.forFeature([
       User,
       AuthToken,

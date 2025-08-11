@@ -9,6 +9,28 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     }),
     ClientsModule.registerAsync([
       {
+        name: 'USER_SERVICE',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (configService: ConfigService) => {
+          const url = configService.get<string>('USER_SERVICE_URL');
+          const queue = configService.get<string>('USER_SERVICE_QUE');
+          if (!url || !queue) {
+            throw new Error(
+              'Missing USER_SERVICE_URL or USER_SERVICE_QUE in environment variables',
+            );
+          }
+          return {
+            transport: Transport.RMQ,
+            options: {
+              urls: [url],
+              queue,
+              queueOptions: { durable: true },
+            },
+          };
+        },
+      },
+      {
         name: 'AUTH_SERVICE',
         imports: [ConfigModule],
         inject: [ConfigService],
@@ -17,7 +39,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           const queue = configService.get<string>('AUTH_SERVICE_QUE');
           if (!url || !queue) {
             throw new Error(
-              'Missing USER_SERVICE_URL or USER_QUEUE in environment variables',
+              'Missing AUTH_SERVICE_URL or AUTH_SERVICE_QUE in environment variables',
             );
           }
           return {
