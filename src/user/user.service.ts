@@ -10,7 +10,7 @@ import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
 @Injectable()
-export class AuthService {
+export class UserService {
   constructor(
     private readonly jwtService: JwtService,
   ) {}

@@ -2,14 +2,14 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { UserController } from './user/user.controller';
-import { AuthService } from './user/user.service';
+import { UserService } from './user/user.service';
 import { RabbitMQModule } from './rabbitmq/rabbitmq.module';
-import { AuthModule } from './user/user.module';
+import { UserModule } from './user/user.module';
 import { IsUniqueConstraint } from './common/validators/is-unique.validator';
 
 @Module({
   imports: [
-    AuthModule,
+    UserModule,
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -24,6 +24,6 @@ import { IsUniqueConstraint } from './common/validators/is-unique.validator';
     RabbitMQModule,
   ],
   controllers: [UserController],
-  providers: [AuthService,IsUniqueConstraint],
+  providers: [UserService,IsUniqueConstraint],
 })
 export class AppModule {}
